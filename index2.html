@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Online Quiz Maker</title>
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+        background-color: #f5f7fa;
+        margin: 0;
+        padding: 0;
+      }
+
+      header {
+        background-color: #34495e;
+        color: white;
+        text-align: center;
+        padding: 20px 10px;
+      }
+
+      main {
+        max-width: 800px;
+        margin: 20px auto;
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      h1,
+      h2 {
+        text-align: center;
+        color: #2c3e50;
+      }
+
+      button {
+        background-color: #3498db;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 5px;
+        margin-top: 10px;
+        cursor: pointer;
+        font-size: 1rem;
+      }
+
+      button:hover {
+        background-color: #2980b9;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0 10px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        font-size: 1rem;
+      }
+
+      .quiz-card {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 10px;
+      }
+
+      .option {
+        margin: 5px 0;
+      }
+
+      .correct {
+        color: green;
+        font-weight: bold;
+      }
+
+      .wrong {
+        color: red;
+        font-weight: bold;
+      }
+
+      footer {
+        text-align: center;
+        padding: 15px;
+        background-color: #34495e;
+        color: white;
+        margin-top: 40px;
+      }
+
+      @media (max-width: 600px) {
+        main {
+          width: 90%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Online Quiz Maker</h1>
+      <p>Create, Share, and Take Quizzes Instantly</p>
+    </header>
+
+    <main>
+      <!-- Home Section -->
+      <section id="home">
+        <h2>Welcome!</h2>
+        <p>Select an option below to get started:</p>
+        <button onclick="showCreateQuiz()">Create a Quiz</button>
+        <button onclick="showQuizList()">Take a Quiz</button>
+      </section>
+
+      <!-- Quiz Creation Section -->
+      <section id="createQuiz" style="display: none">
+        <h2>Create a New Quiz</h2>
+        <input
+          type="text"
+          id="quizTitle"
+          placeholder="Enter Quiz Title"
+          required
+        />
+        <div id="questions"></div>
+        <button onclick="addQuestion()">+ Add Question</button>
+        <button onclick="saveQuiz()">Save Quiz</button>
+        <button onclick="goHome()">Back</button>
+      </section>
+
+      <!-- Quiz Listing Section -->
+      <section id="quizList" style="display: none">
+        <h2>Available Quizzes</h2>
+        <div id="quizContainer"></div>
+        <button onclick="goHome()">Back</button>
+      </section>
+
+      <!-- Quiz Taking Section -->
+      <section id="takeQuiz" style="display: none">
+        <h2 id="quizTitleDisplay"></h2>
+        <div id="quizContent"></div>
+        <button id="nextBtn" onclick="nextQuestion()">Next</button>
+      </section>
+
+      <!-- Quiz Results -->
+      <section id="quizResult" style="display: none">
+        <h2>Quiz Results</h2>
+        <p id="resultText"></p>
+        <button onclick="showQuizList()">Back to Quizzes</button>
+      </section>
+    </main>
+
+    <footer>
+      <p>&copy; 2025 Online Quiz Maker | All Rights Reserved</p>
+    </footer>
+
+    <script>
+      let quizzes = JSON.parse(localStorage.getItem("quizzes")) || [];
+      let currentQuiz = null;
+      let currentQuestion = 0;
+      let score = 0;
+
+      // Go Home
+      function goHome() {
+        hideAll();
+        document.getElementById("home").style.display = "block";
+      }
+
+      function hideAll() {
+        document
+          .querySelectorAll("section")
+          .forEach((sec) => (sec.style.display = "none"));
+      }
+
+      // Show Quiz Creator
+      function showCreateQuiz() {
+        hideAll();
+        document.getElementById("createQuiz").style.display = "block";
+        document.getElementById("questions").innerHTML = "";
+      }
+
+      // Add question form
+      function addQuestion() {
+        const div = document.createElement("div");
+        div.classList.add("quiz-card");
+        div.innerHTML = `
+      <input type="text" placeholder="Question" class="questionText" required>
+      <input type="text" placeholder="Option A" class="optionA" required>
+      <input type="text" placeholder="Option B" class="optionB" required>
+      <input type="text" placeholder="Option C" class="optionC" required>
+      <input type="text" placeholder="Option D" class="optionD" required>
+      <select class="correctOption">
+        <option value="">Select Correct Option</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+        <option value="D">D</option>
+      </select>
+    `;
+        document.getElementById("questions").appendChild(div);
+      }
+
+      // Save quiz
+      function saveQuiz() {
+        const title = document.getElementById("quizTitle").value.trim();
+        if (!title) return alert("Please enter a quiz title.");
+
+        const questionCards = document.querySelectorAll(".quiz-card");
+        const questions = [];
+
+        questionCards.forEach((card) => {
+          const qText = card.querySelector(".questionText").value;
+          const options = {
+            A: card.querySelector(".optionA").value,
+            B: card.querySelector(".optionB").value,
+            C: card.querySelector(".optionC").value,
+            D: card.querySelector(".optionD").value,
+          };
+          const correct = card.querySelector(".correctOption").value;
+          if (qText && correct) {
+            questions.push({ qText, options, correct });
+          }
+        });
+
+        if (questions.length === 0)
+          return alert("Please add at least one question.");
+
+        quizzes.push({ title, questions });
+        localStorage.setItem("quizzes", JSON.stringify(quizzes));
+
+        alert("Quiz saved successfully!");
+        goHome();
+      }
+
+      // Show Quiz List
+      function showQuizList() {
+        hideAll();
+        document.getElementById("quizList").style.display = "block";
+        const container = document.getElementById("quizContainer");
+        container.innerHTML = "";
+
+        if (quizzes.length === 0) {
+          container.innerHTML =
+            "<p>No quizzes available. Create one first!</p>";
+          return;
+        }
+
+        quizzes.forEach((quiz, index) => {
+          const div = document.createElement("div");
+          div.classList.add("quiz-card");
+          div.innerHTML = `
+        <h3>${quiz.title}</h3>
+        <button onclick="startQuiz(${index})">Take Quiz</button>
+      `;
+          container.appendChild(div);
+        });
+      }
+
+      // Start quiz
+      function startQuiz(index) {
+        currentQuiz = quizzes[index];
+        currentQuestion = 0;
+        score = 0;
+        hideAll();
+        document.getElementById("takeQuiz").style.display = "block";
+        document.getElementById("quizTitleDisplay").innerText =
+          currentQuiz.title;
+        showQuestion();
+      }
+
+      // Show current question
+      function showQuestion() {
+        const quizContent = document.getElementById("quizContent");
+        quizContent.innerHTML = "";
+
+        const q = currentQuiz.questions[currentQuestion];
+        if (!q) return;
+
+        quizContent.innerHTML = `
+      <h3>Question ${currentQuestion + 1}: ${q.qText}</h3>
+      ${Object.keys(q.options)
+        .map(
+          (opt) =>
+            `<div class="option"><input type="radio" name="answer" value="${opt}"> ${opt}: ${q.options[opt]}</div>`
+        )
+        .join("")}
+    `;
+
+        document.getElementById("nextBtn").innerText =
+          currentQuestion === currentQuiz.questions.length - 1
+            ? "Submit"
+            : "Next";
+      }
+
+      // Next question or show results
+      function nextQuestion() {
+        const selected = document.querySelector('input[name="answer"]:checked');
+        if (!selected) return alert("Please select an answer.");
+
+        const q = currentQuiz.questions[currentQuestion];
+        if (selected.value === q.correct) score++;
+
+        currentQuestion++;
+
+        if (currentQuestion < currentQuiz.questions.length) {
+          showQuestion();
+        } else {
+          showResults();
+        }
+      }
+
+      // Show quiz results
+      function showResults() {
+        hideAll();
+        document.getElementById("quizResult").style.display = "block";
+        const total = currentQuiz.questions.length;
+        document.getElementById(
+          "resultText"
+        ).innerText = `You scored ${score} out of ${total}!`;
+      }
+    </script>
+  </body>
+</html>
